@@ -133,6 +133,8 @@ extern DECLSPEC const char *SDLCALL SDL_GetScancodeName(SDL_Scancode
  */
 extern DECLSPEC const char *SDLCALL SDL_GetKeyName(SDL_Keycode key);
 
+extern DECLSPEC Uint8* SDL_GetKeyState(int *numkeys);
+
 /**
  *  \brief Start accepting Unicode text input events.
  *  
