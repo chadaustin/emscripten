@@ -28,7 +28,7 @@ var LibrarySDL = {
 
     // The currently preloaded audio elements ready to be played
     audios: [null],
-    rwops: [null],
+    rwops: [null], // deprecated
     // The currently playing audio element.  There's only one music track.
     music: {
       audio: null,
@@ -2617,27 +2617,6 @@ var LibrarySDL = {
 
   SDL_InitSubSystem: function(flags) { return 0 },
 
-  SDL_RWFromConstMem: function(mem, size) {
-    var id = SDL.rwops.length; // TODO: recycle ids when they are null
-    SDL.rwops.push({ bytes: mem, count: size });
-    return id;
-  },
-  SDL_RWFromMem: 'SDL_RWFromConstMem',
-
-  SDL_RWFromFile: function(_name, mode) {
-    var id = SDL.rwops.length; // TODO: recycle ids when they are null
-    var name = Pointer_stringify(_name)
-    SDL.rwops.push({ filename: name, mimetype: Browser.getMimetype(name) });
-    return id;
-  },
-  
-  SDL_FreeRW: function(rwopsID) {
-    SDL.rwops[rwopsID] = null;
-    while (SDL.rwops.length > 0 && SDL.rwops[SDL.rwops.length-1] === null) {
-      SDL.rwops.pop();
-    }
-  },
-
   SDL_EnableUNICODE: function(on) {
     var ret = SDL.unicode || 0;
     SDL.unicode = on;
@@ -2661,7 +2640,6 @@ var LibrarySDL = {
   SDL_WaitThread: function() { throw 'SDL_WaitThread' },
   SDL_GetThreadID: function() { throw 'SDL_GetThreadID' },
   SDL_ThreadID: function() { throw 'SDL_ThreadID' },
-  SDL_AllocRW: function() { throw 'SDL_AllocRW: TODO' },
   SDL_CondBroadcast: function() { throw 'SDL_CondBroadcast: TODO' },
   SDL_CondWaitTimeout: function() { throw 'SDL_CondWaitTimeout: TODO' },
   SDL_WM_IconifyWindow: function() { throw 'SDL_WM_IconifyWindow TODO' },
