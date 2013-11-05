@@ -1111,13 +1111,6 @@ var LibrarySDL = {
     // We actually do the whole screen in Unlock...
   },
 
-  SDL_Delay: function(delay) {
-    if (!ENVIRONMENT_IS_WORKER) abort('SDL_Delay called on the main thread! Potential infinite loop, quitting.');
-    // horrible busy-wait, but in a worker it at least does not block rendering
-    var now = Date.now();
-    while (Date.now() - now < delay) {}
-  },
-
   SDL_WM_SetCaption: function(title, icon) {
     title = title && Pointer_stringify(title);
     icon = icon && Pointer_stringify(icon);
