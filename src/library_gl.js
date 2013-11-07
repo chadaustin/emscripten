@@ -1732,7 +1732,6 @@ var LibraryGL = {
       _glEnable = function _glEnable(cap) {
         // Clean up the renderer on any change to the rendering state. The optimization of
         // skipping renderer setup is aimed at the case of multiple glDraw* right after each other
-        if (GL.immediate.lastRenderer) GL.immediate.lastRenderer.cleanup();
         if (cap == 0x0B60 /* GL_FOG */) {
           GLEmulation.fogEnabled = true;
           return;
@@ -1751,8 +1750,7 @@ var LibraryGL = {
       };
 
       var glDisable = _glDisable;
-      _glDisable = function _glDisable(cap) {
-        if (GL.immediate.lastRenderer) GL.immediate.lastRenderer.cleanup();
+      _glDisable = function(cap) {
         if (cap == 0x0B60 /* GL_FOG */) {
           GLEmulation.fogEnabled = false;
           return;
@@ -4309,143 +4307,6 @@ var LibraryGL = {
     }
   },
 
-  // OpenGL Immediate Mode matrix routines.
-  // Note that in the future we might make these available only in certain modes.
-  glMatrixMode__deps: ['$GL', '$GLImmediateSetup', '$GLEmulation'], // emulation is not strictly needed, this is a workaround
-  glMatrixMode: function(mode) {
-    if (mode == 0x1700 /* GL_MODELVIEW */) {
-      GL.immediate.currentMatrix = 'm';
-    } else if (mode == 0x1701 /* GL_PROJECTION */) {
-      GL.immediate.currentMatrix = 'p';
-    } else if (mode == 0x1702) { // GL_TEXTURE
-      GL.immediate.useTextureMatrix = true;
-      GL.immediate.currentMatrix = 't' + GL.immediate.clientActiveTexture;
-    } else {
-      throw "Wrong mode " + mode + " passed to glMatrixMode";
-    }
-  },
-
-  glPushMatrix: function() {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrixStack[GL.immediate.currentMatrix].push(
-        Array.prototype.slice.call(GL.immediate.matrix[GL.immediate.currentMatrix]));
-  },
-
-  glPopMatrix: function() {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix[GL.immediate.currentMatrix] = GL.immediate.matrixStack[GL.immediate.currentMatrix].pop();
-  },
-
-  glLoadIdentity__deps: ['$GL', '$GLImmediateSetup'],
-  glLoadIdentity: function() {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix.lib.mat4.identity(GL.immediate.matrix[GL.immediate.currentMatrix]);
-  },
-
-  glLoadMatrixd: function(matrix) {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix.lib.mat4.set({{{ makeHEAPView('F64', 'matrix', 'matrix+' + (16*8)) }}}, GL.immediate.matrix[GL.immediate.currentMatrix]);
-  },
-
-  glLoadMatrixf: function(matrix) {
-#if GL_DEBUG
-    if (GL.debug) Module.printErr('glLoadMatrixf receiving: ' + Array.prototype.slice.call(HEAPF32.subarray(matrix >> 2, (matrix >> 2) + 16)));
-#endif
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix.lib.mat4.set({{{ makeHEAPView('F32', 'matrix', 'matrix+' + (16*4)) }}}, GL.immediate.matrix[GL.immediate.currentMatrix]);
-  },
-
-  glLoadTransposeMatrixd: function(matrix) {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix.lib.mat4.set({{{ makeHEAPView('F64', 'matrix', 'matrix+' + (16*8)) }}}, GL.immediate.matrix[GL.immediate.currentMatrix]);
-    GL.immediate.matrix.lib.mat4.transpose(GL.immediate.matrix[GL.immediate.currentMatrix]);
-  },
-
-  glLoadTransposeMatrixf: function(matrix) {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix.lib.mat4.set({{{ makeHEAPView('F32', 'matrix', 'matrix+' + (16*4)) }}}, GL.immediate.matrix[GL.immediate.currentMatrix]);
-    GL.immediate.matrix.lib.mat4.transpose(GL.immediate.matrix[GL.immediate.currentMatrix]);
-  },
-
-  glMultMatrixd: function(matrix) {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix.lib.mat4.multiply(GL.immediate.matrix[GL.immediate.currentMatrix],
-        {{{ makeHEAPView('F64', 'matrix', 'matrix+' + (16*8)) }}});
-  },
-
-  glMultMatrixf: function(matrix) {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix.lib.mat4.multiply(GL.immediate.matrix[GL.immediate.currentMatrix],
-        {{{ makeHEAPView('F32', 'matrix', 'matrix+' + (16*4)) }}});
-  },
-
-  glMultTransposeMatrixd: function(matrix) {
-    GL.immediate.matricesModified = true;
-    var colMajor = GL.immediate.matrix.lib.mat4.create();
-    GL.immediate.matrix.lib.mat4.set({{{ makeHEAPView('F64', 'matrix', 'matrix+' + (16*8)) }}}, colMajor);
-    GL.immediate.matrix.lib.mat4.transpose(colMajor);
-    GL.immediate.matrix.lib.mat4.multiply(GL.immediate.matrix[GL.immediate.currentMatrix], colMajor);
-  },
-
-  glMultTransposeMatrixf: function(matrix) {
-    GL.immediate.matricesModified = true;
-    var colMajor = GL.immediate.matrix.lib.mat4.create();
-    GL.immediate.matrix.lib.mat4.set({{{ makeHEAPView('F32', 'matrix', 'matrix+' + (16*4)) }}}, colMajor);
-    GL.immediate.matrix.lib.mat4.transpose(colMajor);
-    GL.immediate.matrix.lib.mat4.multiply(GL.immediate.matrix[GL.immediate.currentMatrix], colMajor);
-  },
-
-  glFrustum: function(left, right, bottom, top_, nearVal, farVal) {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix.lib.mat4.multiply(GL.immediate.matrix[GL.immediate.currentMatrix],
-        GL.immediate.matrix.lib.mat4.frustum(left, right, bottom, top_, nearVal, farVal));
-  },
-  glFrustumf: 'glFrustum',
-
-  glOrtho: function(left, right, bottom, top_, nearVal, farVal) {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix.lib.mat4.multiply(GL.immediate.matrix[GL.immediate.currentMatrix],
-        GL.immediate.matrix.lib.mat4.ortho(left, right, bottom, top_, nearVal, farVal));
-  },
-  glOrthof: 'glOrtho',
-
-  glScaled: function(x, y, z) {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix.lib.mat4.scale(GL.immediate.matrix[GL.immediate.currentMatrix], [x, y, z]);
-  },
-  glScalef: 'glScaled',
-
-  glTranslated: function(x, y, z) {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix.lib.mat4.translate(GL.immediate.matrix[GL.immediate.currentMatrix], [x, y, z]);
-  },
-  glTranslatef: 'glTranslated',
-
-  glRotated: function(angle, x, y, z) {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix.lib.mat4.rotate(GL.immediate.matrix[GL.immediate.currentMatrix], angle*Math.PI/180, [x, y, z]);
-  },
-  glRotatef: 'glRotated',
-
-  glDrawBuffer: function() { throw 'glDrawBuffer: TODO' },
-  glReadBuffer: function() { throw 'glReadBuffer: TODO' },
-
-  glLightfv: function() { throw 'glLightfv: TODO' },
-  glLightModelfv: function() { throw 'glLightModelfv: TODO' },
-  glMaterialfv: function() { throw 'glMaterialfv: TODO' },
-
-  glTexGeni: function() { throw 'glTexGeni: TODO' },
-  glTexGenfv: function() { throw 'glTexGenfv: TODO' },
-  glTexEnvi: function() { Runtime.warnOnce('glTexEnvi: TODO') },
-  glTexEnvf: function() { Runtime.warnOnce('glTexEnvf: TODO') },
-  glTexEnvfv: function() { Runtime.warnOnce('glTexEnvfv: TODO') },
-
-  glTexImage1D: function() { throw 'glTexImage1D: TODO' },
-  glTexCoord3f: function() { throw 'glTexCoord3f: TODO' },
-  glGetTexLevelParameteriv: function() { throw 'glGetTexLevelParameteriv: TODO' },
-
-  glShadeModel: function() { Runtime.warnOnce('TODO: glShadeModel') },
-
   // Open GLES1.1 compatibility
 
   glGenFramebuffersOES : 'glGenFramebuffers',
@@ -4502,71 +4363,6 @@ var LibraryGL = {
 #endif // LEGACY_GL_EMULATION
 
   // GLU
-
-  gluPerspective: function(fov, aspect, near, far) {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix[GL.immediate.currentMatrix] =
-      GL.immediate.matrix.lib.mat4.perspective(fov, aspect, near, far,
-                                               GL.immediate.matrix[GL.immediate.currentMatrix]);
-  },
-
-  gluLookAt: function(ex, ey, ez, cx, cy, cz, ux, uy, uz) {
-    GL.immediate.matricesModified = true;
-    GL.immediate.matrix.lib.mat4.lookAt(GL.immediate.matrix[GL.immediate.currentMatrix], [ex, ey, ez],
-        [cx, cy, cz], [ux, uy, uz]);
-  },
-
-  gluProject: function(objX, objY, objZ, model, proj, view, winX, winY, winZ) {
-    // The algorithm for this functions comes from Mesa
-
-    var inVec = new Float32Array(4);
-    var outVec = new Float32Array(4);
-    GL.immediate.matrix.lib.mat4.multiplyVec4({{{ makeHEAPView('F64', 'model', 'model+' + (16*8)) }}},
-        [objX, objY, objZ, 1.0], outVec);
-    GL.immediate.matrix.lib.mat4.multiplyVec4({{{ makeHEAPView('F64', 'proj', 'proj+' + (16*8)) }}},
-        outVec, inVec);
-    if (inVec[3] == 0.0) {
-      return 0 /* GL_FALSE */;
-    }
-    inVec[0] /= inVec[3];
-    inVec[1] /= inVec[3];
-    inVec[2] /= inVec[3];
-    // Map x, y and z to range 0-1 */
-    inVec[0] = inVec[0] * 0.5 + 0.5;
-    inVec[1] = inVec[1] * 0.5 + 0.5;
-    inVec[2] = inVec[2] * 0.5 + 0.5;
-    // Map x, y to viewport
-    inVec[0] = inVec[0] * {{{ makeGetValue('view', 2*4, 'i32') }}} + {{{ makeGetValue('view', 0*4, 'i32') }}};
-    inVec[1] = inVec[1] * {{{ makeGetValue('view', 3*4, 'i32') }}} + {{{ makeGetValue('view', 1*4, 'i32') }}};
-
-    {{{ makeSetValue('winX', '0', 'inVec[0]', 'double') }}};
-    {{{ makeSetValue('winY', '0', 'inVec[1]', 'double') }}};
-    {{{ makeSetValue('winZ', '0', 'inVec[2]', 'double') }}};
-
-    return 1 /* GL_TRUE */;
-  },
-
-  gluUnProject: function(winX, winY, winZ, model, proj, view, objX, objY, objZ) {
-    var result = GL.immediate.matrix.lib.mat4.unproject([winX, winY, winZ],
-        {{{ makeHEAPView('F64', 'model', 'model+' + (16*8)) }}},
-        {{{ makeHEAPView('F64', 'proj', 'proj+' + (16*8)) }}},
-        {{{ makeHEAPView('32', 'view', 'view+' + (4*4)) }}});
-
-    if (result === null) {
-      return 0 /* GL_FALSE */;
-    }
-
-    {{{ makeSetValue('objX', '0', 'result[0]', 'double') }}};
-    {{{ makeSetValue('objY', '0', 'result[1]', 'double') }}};
-    {{{ makeSetValue('objZ', '0', 'result[2]', 'double') }}};
-
-    return 1 /* GL_TRUE */;
-  },
-
-  gluOrtho2D__deps: ['glOrtho'],
-  gluOrtho2D: function(left, right, bottom, top) {
-    _glOrtho(left, right, bottom, top, -1, 1);
-  },
 
   // GLES2 emulation
 
