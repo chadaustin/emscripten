@@ -7,7 +7,6 @@
 */ 
  
 var LibraryEGL = {
-  $EGL__deps: [],
   $EGL: {
     // This variable tracks the success status of the most recently invoked EGL function call.
     eglErrorCode: 0x3000 /* EGL_SUCCESS */,
@@ -38,58 +37,9 @@ var LibraryEGL = {
       EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
       return 1;
     },
-
-    getProcAddress: function(name) {
-      var ret = 0;
-      if (name[0] == 'g' && name[1] == 'l') {
-	ret = GL.getProcAddress(name);
-	//console.log("EGL getProcAddress for " + name + " -> " + ret);
-	return ret;
-      }
-
-      switch (name) {
-      case 'eglGetDisplay': ret = {{{ Functions.getIndex('_eglGetDisplay', true) }}}; break;
-      case 'eglInitialize': ret = {{{ Functions.getIndex('_eglInitialize', true) }}}; break;
-      case 'eglTerminate': ret = {{{ Functions.getIndex('_eglTerminate', true) }}}; break;
-      case 'eglGetConfigs': ret = {{{ Functions.getIndex('_eglGetConfigs', true) }}}; break;
-      case 'eglChooseConfig': ret = {{{ Functions.getIndex('_eglChooseConfig', true) }}}; break;
-      case 'eglGetConfigAttrib': ret = {{{ Functions.getIndex('_eglGetConfigAttrib', true) }}}; break;
-      case 'eglCreateWindowSurface': ret = {{{ Functions.getIndex('_eglCreateWindowSurface', true) }}}; break;
-      case 'eglDestroySurface': ret = {{{ Functions.getIndex('_eglDestroySurface', true) }}}; break;
-      case 'eglCreateContext': ret = {{{ Functions.getIndex('_eglCreateContext', true) }}}; break;
-      case 'eglDestroyContext': ret = {{{ Functions.getIndex('_eglDestroyContext', true) }}}; break;
-      case 'eglQuerySurface': ret = {{{ Functions.getIndex('_eglQuerySurface', true) }}}; break;
-      case 'eglQueryContext': ret = {{{ Functions.getIndex('_eglQueryContext', true) }}}; break;
-      case 'eglGetError': ret = {{{ Functions.getIndex('_eglGetError', true) }}}; break;
-      case 'eglQueryString': ret = {{{ Functions.getIndex('_eglQueryString', true) }}}; break;
-      case 'eglBindAPI': ret = {{{ Functions.getIndex('_eglBindAPI', true) }}}; break;
-      case 'eglQueryAPI': ret = {{{ Functions.getIndex('_eglQueryAPI', true) }}}; break;
-      case 'eglWaitClient': ret = {{{ Functions.getIndex('_eglWaitClient', true) }}}; break;
-      case 'eglWaitNative': ret = {{{ Functions.getIndex('_eglWaitNative', true) }}}; break;
-      case 'eglSwapInterval': ret = {{{ Functions.getIndex('_eglSwapInterval', true) }}}; break;
-      case 'eglMakeCurrent': ret = {{{ Functions.getIndex('_eglMakeCurrent', true) }}}; break;
-      case 'eglSwapBuffers': ret = {{{ Functions.getIndex('_eglSwapBuffers', true) }}}; break;
-      }
-      if (!ret) Module.printErr('WARNING: eglGetProcAddress failed for ' + name);
-      console.log("EGL getProcAddress for " + name + " -> " + ret);
-      return ret;
-    },
-  },
-
-  eglGetProcAddress__deps: ['$GL', '$EGL'],
-  eglGetProcAddress__sig: 'ii',
-  eglGetProcAddress: function(name_) {
-    return EGL.getProcAddress(Pointer_stringify(name_));
-  },
-
-  eglGetProcAddressEMSCRIPTEN__deps: ['$GL', '$EGL'],
-  eglGetProcAddressEMSCRIPTEN__sig: 'ii',
-  eglGetProcAddressEMSCRIPTEN: function(name_) {
-    return EGL.getProcAddress(Pointer_stringify(name_));
   },
 
   // EGLAPI EGLDisplay EGLAPIENTRY eglGetDisplay(EGLNativeDisplayType display_id);
-  eglGetDisplay__sig: 'ii',
   eglGetDisplay: function(nativeDisplayType) {
     EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
     // Note: As a 'conformant' implementation of EGL, we would prefer to init here only if the user
@@ -107,7 +57,6 @@ var LibraryEGL = {
   },
 
   // EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor);
-  eglInitialize__sig: 'iiii',
   eglInitialize: function(display, majorVersion, minorVersion) {
     if (display == 62000 /* Magic ID for Emscripten 'default display' */) {
       if (majorVersion) {
@@ -126,7 +75,6 @@ var LibraryEGL = {
   },
 
   // EGLAPI EGLBoolean EGLAPIENTRY eglTerminate(EGLDisplay dpy);
-  eglTerminate__sig: 'ii',
   eglTerminate: function(display) {
     if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
@@ -137,20 +85,28 @@ var LibraryEGL = {
     return 1;
   },
   
+// EGLAPI EGLBoolean EGLAPIENTRY eglTerminate(EGLDisplay dpy);
+  eglTerminate: function(display) {
+    if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
+      EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
+      return 0;
+    }
+    // TODO: Tear down EGL here. Currently a no-op since we don't need to actually do anything here for the browser.
+    EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
+    return 1;
+  },
+
   // EGLAPI EGLBoolean EGLAPIENTRY eglGetConfigs(EGLDisplay dpy, EGLConfig *configs, EGLint config_size, EGLint *num_config);
-  eglGetConfigs__sig: 'iiiii',
   eglGetConfigs: function(display, configs, config_size, numConfigs) { 
     return EGL.chooseConfig(display, 0, configs, config_size, numConfigs);
   },
   
   // EGLAPI EGLBoolean EGLAPIENTRY eglChooseConfig(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config);
-  eglChooseConfig__sig: 'iiiiii',
   eglChooseConfig: function(display, attrib_list, configs, config_size, numConfigs) { 
     return EGL.chooseConfig(display, attrib_list, configs, config_size, numConfigs);
   },
 
   // EGLAPI EGLBoolean EGLAPIENTRY eglGetConfigAttrib(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value);
-  eglGetConfigAttrib__sig: 'iiiii',
   eglGetConfigAttrib: function(display, config, attribute, value) {
     if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
@@ -265,8 +221,7 @@ var LibraryEGL = {
   },
 
   // EGLAPI EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list);
-  eglCreateWindowSurface__sig: 'iiiii',
-  eglCreateWindowSurface: function(display, config, win, attrib_list) {
+  eglCreateWindowSurface: function(display, config, win, attrib_list) { 
     if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
       return 0;
@@ -284,7 +239,6 @@ var LibraryEGL = {
   },
 
   // EGLAPI EGLBoolean EGLAPIENTRY eglDestroySurface(EGLDisplay display, EGLSurface surface);
-  eglDestroySurface__sig: 'iii',
   eglDestroySurface: function(display, surface) { 
     if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
@@ -298,9 +252,9 @@ var LibraryEGL = {
     return 1; /* Magic ID for Emscripten 'default surface' */
   },
 
-  // EGLAPI EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay dpy, EGLConfig config, EGLContext share_context, const EGLint *attrib_list);
   eglCreateContext__deps: ['glutInitDisplayMode', 'glutCreateWindow', '$GL'],
-  eglCreateContext__sig: 'iiiii',
+  
+  // EGLAPI EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay dpy, EGLConfig config, EGLContext share_context, const EGLint *attrib_list);
   eglCreateContext: function(display, config, hmm, contextAttribs) {
     if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
@@ -318,9 +272,21 @@ var LibraryEGL = {
     }
   },
 
-  // EGLAPI EGLBoolean EGLAPIENTRY eglDestroyContext(EGLDisplay dpy, EGLContext context);
   eglDestroyContext__deps: ['glutDestroyWindow', '$GL'],
-  eglDestroyContext__sig: 'iii',
+  
+  // EGLAPI EGLBoolean EGLAPIENTRY eglDestroyContext(EGLDisplay dpy, EGLContext context);
+  eglDestroyContext: function(display, context) {
+    if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
+      EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
+      return 0;
+    }
+
+    _glutDestroyWindow(EGL.windowID);
+    EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
+    return 62004; // Magic ID for Emscripten EGLContext
+  },
+
+  // EGLAPI EGLBoolean EGLAPIENTRY eglDestroyContext(EGLDisplay dpy, EGLContext ctx);
   eglDestroyContext: function(display, context) {
     if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
@@ -332,14 +298,11 @@ var LibraryEGL = {
       return 0;
     }
 
-    _glutDestroyWindow(EGL.windowID);
-
     EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
     return 1;
   }, 
 
   // EGLAPI EGLBoolean EGLAPIENTRY eglQuerySurface(EGLDisplay dpy, EGLSurface surface, EGLint attribute, EGLint *value);
-  eglQuerySurface__sig: 'iiiii',
   eglQuerySurface: function(display, surface, attribute, value) { 
     if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
@@ -405,7 +368,6 @@ var LibraryEGL = {
   },
 
   // EGLAPI EGLBoolean EGLAPIENTRY eglQueryContext(EGLDisplay dpy, EGLContext ctx, EGLint attribute, EGLint *value);
-  eglQueryContext__sig: 'iiiii',
   eglQueryContext: function(display, context, attribute, value) {
     if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
@@ -444,13 +406,11 @@ var LibraryEGL = {
   },
   
   // EGLAPI EGLint EGLAPIENTRY eglGetError(void);
-  eglGetError__sig: 'i',
   eglGetError: function() { 
     return EGL.eglErrorCode;
   },
 
   // EGLAPI const char * EGLAPIENTRY eglQueryString(EGLDisplay dpy, EGLint name);
-  eglQueryString__sig: 'iii',
   eglQueryString: function(display, name) {
     if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
@@ -474,7 +434,6 @@ var LibraryEGL = {
   },
   
   // EGLAPI EGLBoolean EGLAPIENTRY eglBindAPI(EGLenum api);
-  eglBindAPI__sig: 'ii',
   eglBindAPI: function(api) {
     if (api == 0x30A0 /* EGL_OPENGL_ES_API */) {
       EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
@@ -486,28 +445,24 @@ var LibraryEGL = {
   },
 
   // EGLAPI EGLenum EGLAPIENTRY eglQueryAPI(void);
-  eglQueryAPI__sig: 'i',
   eglQueryAPI: function() {
     EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
     return 0x30A0; // EGL_OPENGL_ES_API
   },
 
   // EGLAPI EGLBoolean EGLAPIENTRY eglWaitClient(void);
-  eglWaitClient__sig: 'i',
   eglWaitClient: function() {
     EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
     return 1;
   },
 
   // EGLAPI EGLBoolean EGLAPIENTRY eglWaitNative(EGLint engine);
-  eglWaitNative__sig: 'ii',
   eglWaitNative: function(nativeEngineId) {
     EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
     return 1;
   },
   
   // EGLAPI EGLBoolean EGLAPIENTRY eglSwapInterval(EGLDisplay dpy, EGLint interval);
-  eglSwapInterval__sig: 'iii',
   eglSwapInterval: function(display, interval) {
     if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
@@ -519,7 +474,6 @@ var LibraryEGL = {
   },
   
   // EGLAPI EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx);
-  eglMakeCurrent__sig: 'iiiii',
   eglMakeCurrent: function(display, draw, read, context) { 
     if (display != 62000 /* Magic ID for Emscripten 'default display' */) {
       EGL.setErrorCode(0x3008 /* EGL_BAD_DISPLAY */);
@@ -539,8 +493,7 @@ var LibraryEGL = {
   },
 
   // EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surface);
-  eglSwapBuffers__sig: 'iii',
-  eglSwapBuffers: function(dpy, surface) {
+  eglSwapBuffers: function() {
     EGL.setErrorCode(0x3000 /* EGL_SUCCESS */);
   },
 
@@ -551,49 +504,5 @@ var LibraryEGL = {
 };
 
 autoAddDeps(LibraryEGL, '$EGL');
-
-LibraryEGL["$EGL__deps"] = LibraryEGL["$EGL__deps"].slice(0);
-for (var func in Functions.getIndex.tentative) {
-  if (func in Functions.implementedFunctions) {
-    var funcShort = func.substr(1);
-    if (funcShort.substr(0,3) != 'egl')
-      continue;
-
-    var fullName = '_glRelocate' + func;
-    var fullNameShort = fullName.substr(1);
-    LibraryEGL[fullNameShort] = LibraryEGL[funcShort];
-    LibraryEGL[fullNameShort + '__sig'] = LibraryEGL[funcShort + '__sig'];
-  }
-}
-
-var eglFuncs = [];
-for (var item in LibraryEGL) {
-  if (item != '$EGL' &&
-      item.substr(-6) != '__deps' &&
-      item.substr(-9) != '__postset' &&
-      item.substr(-5) != '__sig' &&
-      (item.substr(0, 3) == 'egl' || item.substr(11, 3) == 'egl'))
-  {
-    eglFuncs.push(item);
-  }
-}
-
-LibraryEGL["$EGL__deps"] = LibraryEGL["$EGL__deps"].concat(eglFuncs);
-LibraryEGL["$EGL__deps"].push(function() {
-  for (var func in Functions.getIndex.tentative) {
-    if (func.substr(0,4) != "_egl")
-      continue;
-
-    var fullName;
-    if (func in Functions.implementedFunctions) {
-      fullName = '_glRelocate' + func;
-    } else {
-      fullName = func;
-    }
-    var k = Functions.getIndex(fullName);
-    Functions.unimplementedFunctions[fullName] = LibraryEGL[fullName.substr(1) + '__sig'];
-    //printErr("EGLUnimp " + fullName + " -> sig for " + fullName.substr(1) + '__sig' + " (" + LibraryEGL[fullName.substr(1) + '__sig'] + ") index: " + k);
-  }
-});
 
 mergeInto(LibraryManager.library, LibraryEGL);

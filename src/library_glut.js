@@ -477,7 +477,6 @@ var LibraryGLUT = {
     GLUT.initDisplayMode = mode;
   },
 
-  glutInitDisplayString: function(modestr) {},
   glutSwapBuffers: function() {},
 
   glutPostRedisplay: function() {
