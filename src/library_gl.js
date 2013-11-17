@@ -1908,6 +1908,7 @@ var LibraryGL = {
           var has_pv = source.search(/a_position/) >= 0;
           var need_pm = 0, need_mm = 0, need_pv = 0;
           var old = source;
+          source = source.replace(/#version 120/g, '');
           source = source.replace(/ftransform\(\)/g, '(u_projection * u_modelView * a_position)');
           if (old != source) need_pm = need_mm = need_pv = 1;
           old = source;
@@ -1965,7 +1966,9 @@ var LibraryGL = {
             source = 'varying float v_fogFragCoord;   \n' +
                      source.replace(/gl_FogFragCoord/g, 'v_fogFragCoord');
           }
+          source = '#version 100\n' + source;
         } else { // Fragment shader
+          source = source.replace(/#version 120/g, '');
           for (var i = 0; i < GL.immediate.MAX_TEXTURES; i++) {
             var old = source;
             source = source.replace(new RegExp('gl_TexCoord\\[' + i + '\\]', 'g'), 'v_texCoord' + i);
@@ -1997,6 +2000,7 @@ var LibraryGL = {
                      source.replace(/gl_FogFragCoord/g, 'v_fogFragCoord');
           }
           source = 'precision mediump float;\n' + source;
+          source = '#version 100\n' + source;
         }
 #if GL_DEBUG
         GL.shaderSources[shader] = source;
