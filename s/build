@@ -1,0 +1,4 @@
+
+export EMCC_FAST_COMPILER=0
+export EMCC_LEAVE_INPUT_RAW=1
+~/projects/emscripten/emcc -O2 -v -s ASM_JS=0 -s RELOOP=1 -s ALLOW_MEMORY_GROWTH=1 -s ASSERTIONS=0 -s EXPORTED_FUNCTIONS=[\'_matrixMultiply\'] -Igmtl -o oldcomp.js oldcomp.cpp
