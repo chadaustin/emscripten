@@ -1,0 +1,3 @@
+[submodule "gmtl"]
+	path = gmtl
+	url = git@github.com:imvu/gmtl.git
